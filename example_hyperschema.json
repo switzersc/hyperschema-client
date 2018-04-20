@@ -15,6 +15,10 @@
         {
             "rel": "self",
             "href": "https://api.example.com/things/{id}"
+        },
+        {
+            "rel": "author",
+            "href": "https://api.example.com/author"
         }
     ]
 }
