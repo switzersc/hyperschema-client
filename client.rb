@@ -1,6 +1,8 @@
 require 'json'
 require 'uri_template'
 require 'net/http'
+require "link_header"
+require "rest-client"
 
 class Client
   attr_reader :json_doc, :json_hyperschema
@@ -13,13 +15,17 @@ class Client
 
     puts "What is home?"
     base_url = gets.chomp
-    uri = URI(base_url)
 
-    response =  Net::HTTP.get_response(uri)
+    response = RestClient.get(base_url)
     puts response
 
     puts "headers are:"
-    puts response.to_hash.inspect
+    puts response.headers
+
+    header_links = LinkHeader.parse(response.headers[:link]).to_a
+
+    puts "Header links are:"
+    puts header_links
 
     # client = self.new(File.read(doc), File.read(schema))
     #
