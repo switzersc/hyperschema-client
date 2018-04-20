@@ -16,34 +16,40 @@ class Client
     puts "What is home?"
     base_url = gets.chomp
 
-    response = RestClient.get(base_url)
-    puts response
+    puts "Do you want to get the schema?"
+    response = gets.chomp
 
-    puts "headers are:"
-    puts response.headers
+    until response == "exit" do
 
-    header_links = LinkHeader.parse(response.headers[:link]).to_a
+      response = RestClient.get(base_url)
+      puts response
 
-    puts "Header links are:"
-    puts header_links
+      header_links = LinkHeader.parse(response.headers[:link]).to_a
+      schema_url = base_url + header_links[0][0]
+      schema = RestClient.get(schema_url)
 
-    # client = self.new(File.read(doc), File.read(schema))
-    #
-    # puts "Here are your links: "
-    # retrieved_links = client.get_links
-    # puts retrieved_links
-    #
-    # puts "Which do you want to follow?"
-    #
-    # rel = gets.chomp
-    #
-    # link = retrieved_links.select{|link| link["rel"] == rel}
-    # puts link
-    # url = link["href"]
-    # puts Net::HTTP.get(url)
-    # getting the doc at this URL
-    # return the entire doc
+      client = self.new(response, schema)
 
+      puts "Here are your links: "
+      retrieved_links = client.get_links
+      puts retrieved_links
+
+      puts "Which do you want to follow?"
+
+      rel = gets.chomp
+
+
+      link = retrieved_links.select{ |link| link["rel"] == rel }.first
+      url = base_url + link["href"]
+      last_response = RestClient.get(url)
+
+      puts "Here's what we found:"
+      puts last_response
+
+      puts "Now what?"
+      puts "(exit to stop)"
+      response = gets.chomp
+    end
 
   end
 
