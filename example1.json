@@ -1,0 +1,32 @@
+{
+    "$id": "https://schema.example.com/tree-node",
+    "$schema": "http://json-schema.org/draft-07/hyper-schema#",
+    "base": "trees/{treeId}/",
+    "properties": {
+        "id": {"type": "integer"},
+        "treeId": {"type": "integer"},
+        "childIds": {
+            "type": "array",
+            "items": {
+                "type": "integer",
+                "links": [
+                    {
+                        "anchor": "nodes/{thisNodeId}",
+                        "rel": "up",
+                        "href": "nodes/{childId}",
+                        "templatePointers": {
+                            "thisNodeId": "/id",
+                            "childId": "0"
+                        }
+                    }
+                ]
+            }
+        }
+    },
+    "links": [
+        {
+            "rel": "self",
+            "href": "nodes/{id}"
+        }
+    ]
+}
