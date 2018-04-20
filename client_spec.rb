@@ -14,8 +14,8 @@ describe Client do
     end
 
     context "with a non-empty schema and doc" do
-      let!(:schema) { File.read("example_hyperschema.json") }
-      let!(:doc) { File.read("example_json_doc.json") }
+      let!(:schema) { File.read("/Users/vandal/dev/hyperschema-client/example_hyperschema.json") }
+      let!(:doc) { File.read("/Users/vandal/dev/hyperschema-client/example_json_doc.json") }
 
       it "returns list of links" do
         client = Client.new(doc, schema)
@@ -37,5 +37,11 @@ describe Client do
     end
   end
 
-  describe ""
+  context "following the first link" do
+    let!(:schema) { File.read("example_hyperschema.json") }
+    let!(:doc) { File.read("example_json_doc.json") }
+
+
+
+  end
 end
