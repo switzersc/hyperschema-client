@@ -8,49 +8,125 @@ class Client
   attr_reader :json_doc, :json_hyperschema
 
   def self.run
-    # puts "What document would you like to parse?"
-    # doc = "/Users/vandal/dev/hyperschema-client/example_json_doc.json"
-    # puts "What schema would you like to use?"
-    # schema = "/Users/vandal/dev/hyperschema-client/example_hyperschema.json"
-
     puts "What is home?"
-    base_url = gets.chomp
+    base_url = "https://hyper-api-example.herokuapp.com"
 
-    puts "Do you want to get the schema?"
-    response = gets.chomp
+    response = RestClient.get(base_url)
+    puts response
 
-    until response == "exit" do
+    user_will = "continue"
 
-      response = RestClient.get(base_url)
-      puts response
-
+    loop do
+      options = {
+        "Go home" => nil,
+        "Exit" => nil
+      }
       header_links = LinkHeader.parse(response.headers[:link]).to_a
-      schema_url = base_url + header_links[0][0]
-      schema = RestClient.get(schema_url)
 
-      client = self.new(response, schema)
+      if !header_links.empty?
+        schema_url = base_url + header_links[0][0]
+        schema = RestClient.get(schema_url)
 
-      puts "Here are your links: "
-      retrieved_links = client.get_links
-      puts retrieved_links
+        client = self.new(response, schema)
 
-      puts "Which do you want to follow?"
+        retrieved_links = client.get_links
+        retrieved_links.map do |link|
+          key = link["title"] || link["rel"]
+          options[key] = link["rel"]
+        end
+      end
 
-      rel = gets.chomp
+      puts "What do you want to do?"
+      puts options.keys
 
+      option = gets.chomp
 
+      break if option == "Exit"
+
+      if option == "Go home"
+        response = RestClient.get(base_url)
+      end
+
+      next if option == "Go home"
+
+      rel = options[option]
       link = retrieved_links.select{ |link| link["rel"] == rel }.first
       url = base_url + link["href"]
-      last_response = RestClient.get(url)
+
+      case rel
+        when "create"
+          submission_schema_url = base_url + link["submissionSchema"]["$ref"]
+          submission_schema = RestClient.get(submission_schema_url)
+
+          schema_hash = JSON.parse(submission_schema)
+          required = schema_hash["required"]
+
+          form_body = {}
+          schema_hash["properties"].each do |property_name, property_info|
+            if property_info["readOnly"] == true
+              form_body[property_name] = schema_hash[property_name]
+            else
+
+              puts property_name + " | " + property_info["type"] + " | " + required.include?(property_name).to_s
+
+              value = gets.chomp
+
+              if property_info["type"] == "integer"
+                form_body[property_name] = value.to_i
+              else
+                form_body[property_name] = value
+              end
+            end
+          end
+
+          begin
+            response = RestClient.post(url, form_body.to_json, {content_type: :json, accept: :json})
+          rescue RestClient::ExceptionWithResponse => e
+            puts e.response
+          end
+
+        when "put"
+          schema_hash = client.json_hyperschema
+          required = schema_hash["required"]
+
+          form_body = {}
+          resp_hash = JSON.parse response
+          schema_hash["properties"].each do |property_name, property_info|
+            if property_info["readOnly"] == true
+              form_body[property_name] = resp_hash[property_name]
+            else
+              puts property_name + " | " + property_info["type"] + " | " + required.include?(property_name).to_s + " | " + resp_hash[property_name].to_s
+
+              value = gets.chomp
+
+              if value.empty?
+                value = resp_hash[property_name]
+              end
+
+              if property_info["type"] == "integer"
+                form_body[property_name] = value.to_i
+              else
+                form_body[property_name] = value
+              end
+            end
+
+          end
+
+          begin
+            response = RestClient.put(url, form_body.to_json, {content_type: :json, accept: :json})
+          rescue RestClient::ExceptionWithResponse => e
+            puts e.response
+          end
+        when "delete"
+          response = RestClient.delete(url)
+
+        else
+          response = RestClient.get(url)
+      end
 
       puts "Here's what we found:"
-      puts last_response
-
-      puts "Now what?"
-      puts "(exit to stop)"
-      response = gets.chomp
+      puts response
     end
-
   end
 
   def initialize(json_doc, json_hyperschema)
